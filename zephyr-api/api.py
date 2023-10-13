@@ -3,17 +3,20 @@ import torch
 import GPUtil
 from transformers import pipeline
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
-
+from pydantic import BaseModel, Field
+from typing import Optional, List
+import black
+import base64
 
 app = FastAPI()
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 pipe = pipeline(
     "text-generation",
     model="HuggingFaceH4/zephyr-7b-alpha",
     torch_dtype=torch.bfloat16,
-    device_map="auto"
+    device_map=device,
 )
 # Add CORS middleware
 origins = [
@@ -40,6 +43,26 @@ class QueryModel(BaseModel):
     top_p: float = 0.95
     system_message: Optional[str] = "You are a friendly chatbot who always responds in the style of a python developer that uses a combination of natural language and markdown to answer questions."
 
+class CodeDocQuery(BaseModel):
+    code: str
+    language: Optional[str] = "python"  # default to python, but allow for other languages if you plan on expanding
+    include_comments: Optional[bool] = True # whether to generate comments for the code
+    max_new_tokens: int = 256
+    do_sample: bool = True
+    temperature: float = 0.7
+    top_k: int = 50
+    top_p: float = 0.95
+
+class FunctionDocQuery(BaseModel):
+    function_name: str
+    parameters: List[str]
+    return_type: Optional[str]
+    brief_description: Optional[str] = ""
+    max_new_tokens: int = 256
+    do_sample: bool = True
+    temperature: float = 0.7
+    top_k: int = 50
+    top_p: float = 0.95
 
 @app.get("/")
 async def root():
@@ -78,6 +101,8 @@ async def get_response(query: QueryModel):
     prompt = pipe.tokenizer.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
+    print("Received query:", query)
+    print("Generated prompt:", prompt)
     outputs = pipe(
         prompt, 
         max_new_tokens=query.max_new_tokens, 
@@ -139,6 +164,80 @@ async def get_custom_response(query: QueryModel):
         response = response[len("<|assistant|>\n"):].lstrip()
     
     return {"response": response}
+
+from fastapi import HTTPException
+
+@app.post("/zephyr/code-doc")
+async def get_code_documentation(query: CodeDocQuery):
+    try:
+        system_instruction = f"Generate markdown documentation for the following {query.language} code."
+     
+        messages = [
+            {
+                "role": "system",
+                "content": system_instruction,
+            },
+            {"role": "user", "content": query.code},
+        ]
+
+        # Assuming pipe.tokenizer.apply_chat_template constructs a prompt for the model
+        prompt = pipe.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+
+        # Call the model (or service) to generate the markdown documentation
+        outputs = pipe(
+            prompt, 
+            max_new_tokens=query.max_new_tokens, 
+            do_sample=query.do_sample, 
+            temperature=query.temperature, 
+            top_k=query.top_k, 
+            top_p=query.top_p
+        )
+
+        # Extract and clean the generated text
+        response = outputs[0]["generated_text"].split('</s>')[-1].strip()
+        while response.startswith("\n"):
+            response = response[1:]
+
+        return {"response": response}
+    except Exception as e:
+        # Catch any unexpected errors and return a clearer message to the client
+        raise HTTPException(status_code=500, detail=str(e))
+
+## Will generate within a provided structure
+@app.post("/zephyr/structured-code-doc")
+async def get_structured_code_documentation(query: FunctionDocQuery):
+    system_instruction = f"Generate markdown documentation for a {query.return_type} function named {query.function_name} in Python, which has the parameters {', '.join(query.parameters)} and is used to {query.brief_description}."
+    
+    messages = [
+        {
+            "role": "system",
+            "content": system_instruction,
+        },
+        {"role": "user", "content": "Please provide a markdown formatted documentation snippet."},
+    ]
+    
+    prompt = pipe.tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+    
+    outputs = pipe(
+        prompt, 
+        max_new_tokens=query.max_new_tokens, 
+        do_sample=query.do_sample, 
+        temperature=query.temperature, 
+        top_k=query.top_k, 
+        top_p=query.top_p
+    )
+    
+    # Extract and clean the generated text
+    response = outputs[0]["generated_text"].split('</s>')[-1].strip()
+    while response.startswith("\n"):
+        response = response[1:]
+    
+    return {"response": response}
+
 
 
 ## Websocket for live GPU usage stats when querying the model
