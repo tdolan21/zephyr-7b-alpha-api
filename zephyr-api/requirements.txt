@@ -1,0 +1,13 @@
+fastapi==0.103.0
+fastapi-limiter
+cachetools
+Pillow
+Requests==2.31.0
+transformers==4.31.0
+python-multipart
+uvicorn
+python-dotenv
+einops
+chardet
+psycopg2-binary
+charset_normalizer
