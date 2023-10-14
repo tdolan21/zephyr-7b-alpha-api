@@ -39,10 +39,8 @@ http://localhost:8501
 
 Access the root of the API:
 
-GET /: returns a welcome screen
-POST /zephyr/raw
-
-- Returns unstructured output with system prompt and tokens still in place.
+- GET /: returns a welcome screen with descriptions of the currently available endpoints
+- POST /zephyr/raw Returns unstructured output with system prompt and tokens still in place.
 
 ### Pythonic Chatbot Response
 
