@@ -2,21 +2,45 @@ import streamlit as st
 import requests
 import time
 import json
+import threading
+import websockets
+import asyncio
 
 BASE_URL = "http://localhost:8000"
-
+websocket_url = "ws://localhost:8000/zephyr/ws/gpu-stats"
 # Set page title and tab icon
 st.set_page_config(
-    page_title="zephyr-API demo",
+    page_title="Zephyr-API Demo",
     page_icon="🪂",  # You can specify a URL or an emoji as the tab icon
 )
 
-st.title("Interact with the API")
-st.write("Configure the model parameters and endpoint from the sidebar and send your message!")
+async def update_gpu_info():
+    async with websockets.connect(websocket_url) as websocket:
+        while True:
+            # Receive GPU stats from the WebSocket
+            gpu_stats_json = await websocket.recv()
+            gpu_stats = json.loads(gpu_stats_json)
+            
+            # Update GPU information in Streamlit
+            # Note: Modify this code to display the GPU stats as desired
+            gpu_info_placeholder.write(gpu_stats)
+
+
+# Define the citation text and link
+citation_text = "Huggingface Zephyr Arxiv Paper"
+citation_link = "https://huggingface.co/papers/2305.18290"
+
+# Create a markdown element for the citation link
+citation_markdown = f"[{citation_text}]({citation_link})"
+
+
+
+st.title("zephyr-7B-α demo")
 
 # Sidebar configurations
 st.sidebar.image("assets/thumbnail.png")
 st.sidebar.title("zephyr-7b-alpha API demo")
+st.sidebar.info("Configure the model parameters and endpoint from the sidebar and send your message!")
 
 # Endpoint selection
 endpoints = ["zephyr/python", "zephyr/raw", "zephyr/system-message", "zephyr/structured-code-doc", "zephyr/code-doc", "zephyr/ws/gpu-stats"]
@@ -32,6 +56,13 @@ do_sample = st.sidebar.checkbox("Do Sample:", value=True)
 temperature = st.sidebar.slider("Temperature:", 0.1, 1.0, 0.7, 0.1)
 top_k = st.sidebar.slider("Top K:", 1, 100, 50)
 top_p = st.sidebar.slider("Top P:", 0.1, 1.0, 0.95, 0.05)
+# Create a placeholder for GPU information in the sidebar
+gpu_info_placeholder = st.sidebar.empty()
+
+
+
+# Display the citation link in the sidebar
+st.sidebar.warning(citation_markdown)
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -106,3 +137,5 @@ if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 
+if __name__ == "__app__":
+    asyncio.get_event_loop().run_until_complete(update_gpu_info())

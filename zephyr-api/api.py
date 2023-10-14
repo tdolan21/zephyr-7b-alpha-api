@@ -283,31 +283,31 @@ async def get_structured_code_documentation(query: QueryModel):
 
 
 
-# ## Websocket for live GPU usage stats when querying the model
-# @app.websocket("zephyr/ws/gpu-stats")
-# async def websocket_gpu_usage(websocket: WebSocket):
-#     await websocket.accept()
-#     try:
-#         while True:
-#             # Get GPU stats
-#             gpus = GPUtil.getGPUs()
-#             gpu_data = []
-#             for gpu in gpus:
-#                 data = {
-#                     "id": gpu.id,
-#                     "name": gpu.name,
-#                     "driver_version": gpu.driver,
-#                     "load": gpu.load * 100,  # in percentage
-#                     "memoryUsed": gpu.memoryUsed,
-#                     "memoryFree": gpu.memoryFree,
-#                     "memoryTotal": gpu.memoryTotal,
-#                 }
-#                 gpu_data.append(data)
+## Websocket for live GPU usage stats when querying the model
+@app.websocket("zephyr/ws/gpu-stats")
+async def websocket_gpu_usage(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            # Get GPU stats
+            gpus = GPUtil.getGPUs()
+            gpu_data = []
+            for gpu in gpus:
+                data = {
+                    "id": gpu.id,
+                    "name": gpu.name,
+                    "driver_version": gpu.driver,
+                    "load": gpu.load * 100,  # in percentage
+                    "memoryUsed": gpu.memoryUsed,
+                    "memoryFree": gpu.memoryFree,
+                    "memoryTotal": gpu.memoryTotal,
+                }
+                gpu_data.append(data)
             
-#             # Send GPU stats to client
-#             await websocket.send_json({"gpus": gpu_data})
+            # Send GPU stats to client
+            await websocket.send_json({"gpus": gpu_data})
             
-#             # Wait for some time before sending the next update
-#             await asyncio.sleep(1)  # send updates every second
-#     except:
-#         await websocket.close()
+            # Wait for some time before sending the next update
+            await asyncio.sleep(1)  # send updates every second
+    except:
+        await websocket.close()

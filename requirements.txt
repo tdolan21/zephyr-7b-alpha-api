@@ -16,3 +16,6 @@ einops
 chardet
 psycopg2-binary
 charset_normalizer
+black
+GPUtil
+websockets
