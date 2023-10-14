@@ -1,45 +1,29 @@
 services:
   web:
-    container_name: zephyr_chat
-    build: ./zephyr_chat/
+    container_name: zephyr-chat
+    build: ./zephyr-chat/
     ports:
       - "8501:8501"
     depends_on:
-      db:
-        condition: service_healthy
+      - redis
     command: ["streamlit", "run", "app.py"]
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     networks:
       - zephyr_network
 
-  db:
-    container_name: zephyr_postgres
-    image: postgres:latest
-    restart: always
-    user: postgres
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-    volumes:
-      - ./postgres-data:/var/lib/postgresql/data
-      - ./database/db-init/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 1s
-      timeout: 5s
-      retries: 10
+  redis:
+    container_name: redis-cache
+    image: redis:latest
+    ports:
+      - "6379:6379"
     networks:
       - zephyr_network
 
   api:
-    container_name: zephyr_api
-    build: ./zephyr_api/
+    container_name: zephyr-api
+    build: ./zephyr-api/
     deploy:
       resources:
         reservations:
@@ -53,5 +37,5 @@ services:
       - zephyr_network
 
 networks:
-  phi_network:
+  zephyr_network:
     driver: bridge

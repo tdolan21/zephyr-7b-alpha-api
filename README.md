@@ -23,10 +23,8 @@ If you wish to use a local/non-containerized install:
 git clone https://github.com/tdolan21/zephyr-7b-alpha-api
 cd zephyr-7b-alpha-api
 pip install -r requirements.txt
-cd zephyr-api
-uvicorn api:app --reload
-cd ../zephyr-chat
-streamlit run app.py
+chmod +x run.sh
+./run.sh
 ```
 After this the api and the application will be available at:
 ```
