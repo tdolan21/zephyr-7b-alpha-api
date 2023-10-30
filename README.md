@@ -2,6 +2,10 @@
 
 This repo contains an api and a chat demo with a redis cache for the zephyr-7b-alpha model from Huggingface. This is an unofficial api that can be self hosted on docker, or if you wish you can add the additional configuration to push to ECS. Minimum  ideal container is p2.xlarge at $0.90/hour.
 
+The application also serves as a drop-in replacement with Zephyr-7b-β
+
+I have a fully separate repo for zephyr-7b-beta available [here](https://github.com/tdolan21/zephyr-7b-beta-api).
+
 ![Python](https://img.shields.io/badge/python-v3.8+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.68.0-green)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13.3-blue)
@@ -11,6 +15,7 @@ This repo contains an api and a chat demo with a redis cache for the zephyr-7b-a
 This program is Linux dependent due to some of the dependecies required for the transformers/huggingface libraries. If you are on Windows you will likely need to use WSL to make this work.
 
 If you need to use WSL you can just follow along with the local install instructions from the WSL powershell console.
+
 
 ## Installation
 
@@ -36,6 +41,30 @@ http://localhost:8000
 http://localhost:8501
 ```
 ## Usage 
+
+## Drop-in Zephyr-7b-β
+
+In the file api.py there is a config for the pipeline:
+
+```python
+pipe = pipeline(
+    "text-generation",
+    model="HuggingFaceH4/zephyr-7b-alpha",
+    torch_dtype=torch.bfloat16,
+    device_map=device,
+)
+```
+You will replace the line:
+
+```python
+model="HuggingFaceH4/zephyr-7b-alpha"
+```
+with:
+
+```python
+model="HuggingFaceH4/zephyr-7b-beta"
+```
+Everything should work just the same, but I am working on an independent application for testing purposes.
 
 ### Default Model Values
 
